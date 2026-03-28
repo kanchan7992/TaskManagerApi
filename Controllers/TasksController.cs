@@ -56,22 +56,39 @@ public class TasksController : ControllerBase
 
     // Get Tasks by Project
     [HttpGet]
-    public IActionResult GetTasks(int projectId)
+    public IActionResult GetTasks(int projectId, int page = 1, int pageSize = 5, string? status = null)
     {
         var userId = GetUserId();
 
-        // Ensure project belongs to user
         var project = _context.Projects
             .FirstOrDefault(p => p.Id == projectId && p.UserId == userId);
 
         if (project == null)
             return NotFound("Project not found");
 
-        var tasks = _context.Tasks
-            .Where(t => t.ProjectId == projectId)
+        var query = _context.Tasks
+            .Where(t => t.ProjectId == projectId);
+
+        // Filter by status
+        if (!string.IsNullOrEmpty(status))
+        {
+            query = query.Where(t => t.Status == status);
+        }
+
+        var totalCount = query.Count();
+
+        var tasks = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToList();
 
-        return Ok(tasks);
+        return Ok(new
+        {
+            totalCount,
+            page,
+            pageSize,
+            data = tasks
+        });
     }
 
     // Update Task

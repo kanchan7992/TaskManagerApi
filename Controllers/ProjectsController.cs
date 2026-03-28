@@ -43,15 +43,27 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetMyProjects()
+    public IActionResult GetMyProjects(int page = 1, int pageSize = 5)
     {
         var userId = GetUserId();
 
-        var projects = _context.Projects
-            .Where(p => p.UserId == userId)
+        var query = _context.Projects
+            .Where(p => p.UserId == userId);
+
+        var totalCount = query.Count();
+
+        var projects = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToList();
 
-        return Ok(projects);
+        return Ok(new
+        {
+            totalCount,
+            page,
+            pageSize,
+            data = projects
+        });
     }
 
     [HttpPut("{id}")]
