@@ -26,6 +26,9 @@ public class ProjectsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateProject(CreateProjectRequest request)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var project = new Project
         {
             Name = request.Name,
@@ -54,13 +57,15 @@ public class ProjectsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProject(int id, UpdateProjectRequest request)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
         var userId = GetUserId();
 
         var project = _context.Projects
             .FirstOrDefault(p => p.Id == id && p.UserId == userId);
 
         if (project == null)
-            return NotFound();
+            return NotFound("Project not found");
 
         project.Name = request.Name;
         project.Description = request.Description;
@@ -79,7 +84,7 @@ public class ProjectsController : ControllerBase
             .FirstOrDefault(p => p.Id == id && p.UserId == userId);
 
         if (project == null)
-            return NotFound();
+            return NotFound("Project not found");
 
         _context.Projects.Remove(project);
         await _context.SaveChangesAsync();

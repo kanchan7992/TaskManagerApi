@@ -25,10 +25,12 @@ public class TasksController : ControllerBase
         return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
     }
 
-    // ✅ Create Task
+    // Create Task
     [HttpPost]
     public async Task<IActionResult> CreateTask(CreateTaskRequest request)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
         var userId = GetUserId();
 
         // Check if project belongs to user
@@ -76,6 +78,8 @@ public class TasksController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateTask(int id, UpdateTaskRequest request)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
         var task = _context.Tasks.FirstOrDefault(t => t.Id == id);
 
         if (task == null)

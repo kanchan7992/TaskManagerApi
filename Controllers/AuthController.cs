@@ -84,6 +84,5 @@ public class AuthController : ControllerBase
             token = jwt
         });
 
-
     }
 }
