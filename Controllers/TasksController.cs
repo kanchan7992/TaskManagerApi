@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TaskManagerApi.Data;
 using TaskManagerApi.DTOs;
@@ -56,37 +57,46 @@ public class TasksController : ControllerBase
 
     // Get Tasks by Project
     [HttpGet]
-    public IActionResult GetTasks(int projectId, int page = 1, int pageSize = 5, string? status = null)
+    public async Task<IActionResult> GetTasks([FromQuery] TaskQueryParams query)
     {
+         if (query.ProjectId <= 0)
+    {
+        return BadRequest("ProjectId is required");
+    }
         var userId = GetUserId();
 
-        var project = _context.Projects
-            .FirstOrDefault(p => p.Id == projectId && p.UserId == userId);
+        var project = await _context.Projects
+            .FirstOrDefaultAsync(p => p.Id == query.ProjectId && p.UserId == userId);
 
         if (project == null)
             return NotFound("Project not found");
 
-        var query = _context.Tasks
-            .Where(t => t.ProjectId == projectId);
+        var tasksQuery = _context.Tasks
+            .Where(t => t.ProjectId == query.ProjectId)
+            .AsQueryable();
 
-        // Filter by status
-        if (!string.IsNullOrEmpty(status))
+        // Filter
+        if (!string.IsNullOrEmpty(query.Status))
         {
-            query = query.Where(t => t.Status == status);
+            tasksQuery = tasksQuery.Where(t => t.Status == query.Status);
         }
 
-        var totalCount = query.Count();
+        tasksQuery = tasksQuery.OrderBy(t => t.Id);
 
-        var tasks = query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
+        // Total count
+        var totalCount = await tasksQuery.CountAsync();
+
+        // Pagination
+        var tasks = await tasksQuery
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
 
         return Ok(new
         {
             totalCount,
-            page,
-            pageSize,
+            query.Page,
+            query.PageSize,
             data = tasks
         });
     }
